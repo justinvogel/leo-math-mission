@@ -24,6 +24,38 @@
     hasCompletedScan: false,
   });
 
+  /** Keep cloud/local state safe so a bad field can't blank the dashboard */
+  function normalizeState(raw) {
+    const base = defaultState();
+    const s = raw && typeof raw === "object" ? raw : {};
+    const skillStats =
+      s.skillStats && typeof s.skillStats === "object" && !Array.isArray(s.skillStats)
+        ? s.skillStats
+        : {};
+    const sessions = Array.isArray(s.sessions) ? s.sessions : [];
+    const unlockedModules = Array.isArray(s.unlockedModules)
+      ? s.unlockedModules.filter(Boolean)
+      : ["pad"];
+    if (!unlockedModules.includes("pad")) unlockedModules.unshift("pad");
+
+    return {
+      ...base,
+      ...s,
+      version: Number(s.version) || base.version,
+      xp: Math.max(0, Number(s.xp) || 0),
+      level: Math.max(1, Number(s.level) || 1),
+      streak: Math.max(0, Number(s.streak) || 0),
+      missionsCompleted: Math.max(0, Number(s.missionsCompleted) || 0),
+      lastMissionDate: s.lastMissionDate || null,
+      skillStats,
+      sessions,
+      unlockedModules,
+      avatar: s.avatar || base.avatar,
+      placement: s.placement && typeof s.placement === "object" ? s.placement : null,
+      hasCompletedScan: !!s.hasCompletedScan,
+    };
+  }
+
   let state = loadState();
   let session = null;
   let syncTimer = null;
@@ -41,7 +73,7 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
-      return { ...defaultState(), ...JSON.parse(raw) };
+      return normalizeState(JSON.parse(raw));
     } catch {
       return defaultState();
     }
@@ -79,7 +111,7 @@
     if (!quiet) setSyncStatus("Saving…", true);
     try {
       const result = await Sync.syncNow(state);
-      state = { ...defaultState(), ...result.state };
+      state = normalizeState(result.state);
       saveState({ sync: false });
       if (screens.home.classList.contains("active")) renderHome();
       if (screens.parent.classList.contains("active")) renderParent();
@@ -112,8 +144,15 @@
   }
 
   function showScreen(name) {
-    Object.values(screens).forEach((el) => el.classList.remove("active"));
-    screens[name].classList.add("active");
+    Object.values(screens).forEach((el) => {
+      el.classList.remove("active");
+      el.classList.remove("screen-enter");
+    });
+    const next = screens[name];
+    next.classList.add("active");
+    // Force reflow so enter animation + iOS compositing pick up full content
+    void next.offsetHeight;
+    next.classList.add("screen-enter");
     window.scrollTo(0, 0);
   }
 
@@ -128,8 +167,9 @@
   }
 
   function skillMastery(skillId) {
-    const s = state.skillStats[skillId] || { seen: 0, correct: 0 };
-    if (s.seen === 0) return 0;
+    const stats = state.skillStats && typeof state.skillStats === "object" ? state.skillStats : {};
+    const s = stats[skillId] || { seen: 0, correct: 0 };
+    if (!s.seen) return 0;
     return Math.round((s.correct / s.seen) * 100);
   }
 
@@ -182,100 +222,122 @@
 
   // --- Home ---
   function renderHome() {
-    state.avatar = avatarsForLevel(state.level);
-    $("home-avatar").textContent = state.avatar;
-    $("stat-level").textContent = String(state.level);
-    $("stat-xp").textContent = String(state.xp);
-    $("stat-streak").textContent = `${state.streak}🔥`;
+    try {
+      state = normalizeState(state);
+      state.avatar = avatarsForLevel(state.level);
+      $("home-avatar").textContent = state.avatar;
+      $("stat-level").textContent = String(state.level);
+      $("stat-xp").textContent = String(state.xp);
+      $("stat-streak").textContent = `${state.streak}🔥`;
 
-    const need = C.xpForLevel(state.level);
-    const pct = Math.min(100, Math.round((state.xp / need) * 100));
-    $("xp-fill").style.width = pct + "%";
-    $("xp-caption").textContent = `${Math.max(0, need - state.xp)} XP to Level ${state.level + 1}`;
+      const need = C.xpForLevel(state.level);
+      const pct = Math.min(100, Math.round((state.xp / need) * 100));
+      $("xp-fill").style.width = pct + "%";
+      $("xp-caption").textContent = `${Math.max(0, need - state.xp)} XP to Level ${
+        state.level + 1
+      }`;
 
-    // Scan card if not done
-    const scanCard = $("scan-card");
-    scanCard.hidden = !!state.hasCompletedScan;
+      // Scan card if not done (removeAttribute so iOS reliably shows it)
+      const scanCard = $("scan-card");
+      if (state.hasCompletedScan) {
+        scanCard.setAttribute("hidden", "");
+      } else {
+        scanCard.removeAttribute("hidden");
+      }
 
-    const focus = focusSkills();
-    const mission = C.missionForDay(dayIndex(), state.hasCompletedScan ? focus : null);
-    $("mission-title").textContent = mission.title;
-    $("mission-desc").textContent = mission.desc;
-    $("mission-focus").textContent = `Focus: ${mission.focus}`;
-    $("mission-time").textContent =
-      state.lastMissionDate === todayKey() ? "Done today · replay ok" : "~15–20 min";
+      const focus = focusSkills();
+      const mission = C.missionForDay(dayIndex(), state.hasCompletedScan ? focus : null);
+      $("mission-title").textContent = mission.title;
+      $("mission-desc").textContent = mission.desc;
+      $("mission-focus").textContent = `Focus: ${mission.focus}`;
+      $("mission-time").textContent =
+        state.lastMissionDate === todayKey() ? "Done today · replay ok" : "~15–20 min";
 
-    // Path from scan
-    const pathSection = $("path-section");
-    if (state.hasCompletedScan && state.placement) {
-      pathSection.hidden = false;
-      $("path-headline").textContent = state.placement.kidHeadline || "From your Skill Scan";
-      $("path-chips").innerHTML = (state.placement.focusSkills || [])
-        .map((id) => {
-          const sk = C.SKILL_BY_ID[id];
-          if (!sk) return "";
-          const st = placementStatus(id);
-          const badge = st ? st.label : "Train";
-          return `<button type="button" class="path-chip" data-skill="${id}">
+      // Path from scan
+      const pathSection = $("path-section");
+      if (state.hasCompletedScan && state.placement) {
+        pathSection.removeAttribute("hidden");
+        $("path-headline").textContent =
+          state.placement.kidHeadline || "From your Skill Scan";
+        $("path-chips").innerHTML = (state.placement.focusSkills || [])
+          .map((id) => {
+            const sk = C.SKILL_BY_ID[id];
+            if (!sk) return "";
+            const st = placementStatus(id);
+            const badge = st ? st.label : "Train";
+            return `<button type="button" class="path-chip" data-skill="${id}">
             <span class="emoji">${sk.emoji}</span>
             <span class="name">${sk.name}</span>
             <span class="meta">${badge}</span>
           </button>`;
-        })
-        .join("");
-      $("path-chips").querySelectorAll("[data-skill]").forEach((btn) => {
-        btn.addEventListener("click", () => startPractice(btn.getAttribute("data-skill")));
-      });
-    } else {
-      pathSection.hidden = true;
-    }
-
-    // Skills grid
-    const grid = $("skill-grid");
-    const domains = ["foundations", "fractions", "decimals", "mixed", "ratio"];
-    // flat chips still; group by showing domain in meta
-    grid.innerHTML = C.SKILLS.map((sk) => {
-      const locked = state.level < sk.unlockLevel && !state.hasCompletedScan;
-      const pctM = skillMastery(sk.id);
-      const place = placementStatus(sk.id);
-      let meta = locked ? `Unlocks at Level ${sk.unlockLevel}` : sk.blurb;
-      if (place && place.status !== "not-scanned") {
-        meta = place.label;
+          })
+          .join("");
+        $("path-chips").querySelectorAll("[data-skill]").forEach((btn) => {
+          btn.addEventListener("click", () => startPractice(btn.getAttribute("data-skill")));
+        });
+      } else {
+        pathSection.setAttribute("hidden", "");
       }
-      const statusClass = place ? `status-${place.status}` : "";
-      return `
+
+      // Skills grid
+      const grid = $("skill-grid");
+      grid.innerHTML = C.SKILLS.map((sk) => {
+        const locked = state.level < sk.unlockLevel && !state.hasCompletedScan;
+        const pctM = skillMastery(sk.id);
+        const place = placementStatus(sk.id);
+        let meta = locked ? `Unlocks at Level ${sk.unlockLevel}` : sk.blurb;
+        if (place && place.status !== "not-scanned") {
+          meta = place.label;
+        }
+        const statusClass = place ? `status-${place.status}` : "";
+        return `
         <button type="button" class="skill-chip ${statusClass}" data-skill="${sk.id}" ${
-        locked ? "disabled" : ""
-      } style="${locked ? "opacity:0.45" : ""}">
+          locked ? "disabled" : ""
+        } style="${locked ? "opacity:0.45" : ""}">
           <span class="emoji">${sk.emoji}</span>
           <span class="name">${sk.name}</span>
           <span class="meta">${meta}</span>
           ${locked ? "" : `<div class="bars">${masteryBars(pctM)}</div>`}
         </button>
       `;
-    }).join("");
+      }).join("");
 
-    grid.querySelectorAll(".skill-chip[data-skill]:not([disabled])").forEach((btn) => {
-      btn.addEventListener("click", () => startPractice(btn.getAttribute("data-skill")));
-    });
+      grid.querySelectorAll(".skill-chip[data-skill]:not([disabled])").forEach((btn) => {
+        btn.addEventListener("click", () => startPractice(btn.getAttribute("data-skill")));
+      });
 
-    // Base modules
-    const base = $("base-grid");
-    base.innerHTML = C.BASE_MODULES.map((m) => {
-      const unlocked =
-        state.unlockedModules.includes(m.id) || state.missionsCompleted >= m.needMissions;
-      if (unlocked && !state.unlockedModules.includes(m.id)) {
-        state.unlockedModules.push(m.id);
-      }
-      return `
+      // Base modules
+      const base = $("base-grid");
+      if (!Array.isArray(state.unlockedModules)) state.unlockedModules = ["pad"];
+      base.innerHTML = C.BASE_MODULES.map((m) => {
+        const unlocked =
+          state.unlockedModules.includes(m.id) || state.missionsCompleted >= m.needMissions;
+        if (unlocked && !state.unlockedModules.includes(m.id)) {
+          state.unlockedModules.push(m.id);
+        }
+        return `
         <div class="base-tile ${unlocked ? "unlocked" : "locked"}">
           <span class="emoji">${unlocked ? m.emoji : "🔒"}</span>
           <span class="name">${m.name}</span>
           <span class="meta">${unlocked ? "Online" : `${m.needMissions} missions to unlock`}</span>
         </div>
       `;
-    }).join("");
-    saveState();
+      }).join("");
+
+      // Persist unlocks only — don't kick off sync mid-render
+      saveState({ sync: false });
+
+      // Nudge iOS to paint full dashboard height after dynamic content
+      requestAnimationFrame(() => {
+        const home = screens.home;
+        if (home && home.classList.contains("active")) {
+          home.style.minHeight = "auto";
+          void home.offsetHeight;
+        }
+      });
+    } catch (err) {
+      console.error("renderHome failed", err);
+    }
   }
 
   // --- Adaptive scan list (trim based on early misses) ---
@@ -872,8 +934,8 @@
   });
   $("btn-home").addEventListener("click", () => {
     session = null;
-    renderHome();
     showScreen("home");
+    renderHome();
     syncNow({ quiet: true }).catch(() => {});
   });
   $("btn-another").addEventListener("click", () => {
@@ -891,8 +953,8 @@
     showScreen("parent");
   });
   $("btn-parent-back").addEventListener("click", () => {
-    renderHome();
     showScreen("home");
+    renderHome();
   });
   $("btn-rescan").addEventListener("click", () => {
     showScreen("home");
@@ -921,10 +983,17 @@
     }
   });
 
-  renderHome();
+  // Paint dashboard first, then cloud sync (avoids racing empty/broken state)
   showScreen("home");
-  if (Sync) {
-    setSyncStatus("Saving…", true);
-    syncNow({ quiet: true }).catch(() => {});
-  }
+  renderHome();
+  requestAnimationFrame(() => {
+    renderHome();
+    if (Sync) {
+      setSyncStatus("Saving…", true);
+      // Slight delay so first paint of skill tiles isn't interrupted on iOS
+      setTimeout(() => {
+        syncNow({ quiet: true }).catch(() => {});
+      }, 300);
+    }
+  });
 })();
