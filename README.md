@@ -14,22 +14,13 @@ Works at Dad’s or Mom’s house — any Wi‑Fi. No App Store.
 2. Tap **Share** → **Add to Home Screen**  
 3. Open from the new icon next time  
 
-### Two-iPad sync (Dad’s iPad + Mom’s iPad)
+### Progress on both iPads (automatic)
 
-Progress syncs through the cloud with a **shared code**.
+Leo is the only player. Progress **auto-saves to the cloud** — no codes, no accounts, no setup.
 
-1. On **iPad A** (e.g. Dad’s): open app → **📊 Parent** → **Create new code**  
-2. You’ll get something like `LEO7K2M9`  
-3. On **iPad B** (Mom’s): open the **same website** → **📊 Parent** → type that code → **Save code**  
-4. Tap **☁️** anytime (or it auto-syncs after missions / when the app opens)
+Open the same URL on Dad’s or Mom’s iPad. The app loads and merges his progress in the background.
 
-Both iPads merge progress (XP, skills, scan, sessions) — work on either house counts.
-
-**One-time infrastructure note:** the free sync server was created on a temporary Cloudflare preview account. **Claim it so it doesn’t expire** (takes 30 seconds, free):
-
-https://dash.cloudflare.com/claim-preview?claimToken=VOS4qkx71KKRNnwefRoeORoGHhsmpaatg8OfnW_BFmo
-
-(If that link already expired, re-run deploy from `sync-worker/` — see below.)
+Needs Wi‑Fi to sync; offline it keeps going locally and catches up next time.
 
 ## What it is
 
