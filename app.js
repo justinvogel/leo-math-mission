@@ -5,6 +5,7 @@
   "use strict";
 
   const C = window.MathMissionCurriculum;
+  const Sync = window.MathMissionSync;
   const STORAGE_KEY = "leo-math-mission-v1";
 
   const defaultState = () => ({
@@ -24,6 +25,8 @@
 
   let state = loadState();
   let session = null;
+  let syncTimer = null;
+  let syncInFlight = false;
 
   const $ = (id) => document.getElementById(id);
   const screens = {
@@ -43,8 +46,66 @@
     }
   }
 
-  function saveState() {
+  function saveState(opts) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (!opts || opts.sync !== false) queueSync();
+  }
+
+  function queueSync() {
+    if (!Sync || !Sync.getCode()) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => {
+      syncNow({ quiet: true }).catch(() => {});
+    }, 1200);
+  }
+
+  function setSyncStatus(msg, show) {
+    const el = $("sync-status");
+    if (!el) return;
+    if (!show && !msg) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.textContent = msg || "";
+  }
+
+  async function syncNow(opts) {
+    const quiet = opts && opts.quiet;
+    if (!Sync) return;
+    const code = Sync.getCode();
+    if (!code) {
+      if (!quiet) toast("Set a sync code in Parent view first");
+      return;
+    }
+    if (syncInFlight) return;
+    syncInFlight = true;
+    if (!quiet) setSyncStatus("Syncing…", true);
+    try {
+      const result = await Sync.syncNow(state);
+      state = { ...defaultState(), ...result.state };
+      saveState({ sync: false });
+      if (screens.home.classList.contains("active")) renderHome();
+      if (screens.parent.classList.contains("active")) renderParent();
+      const when = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      setSyncStatus(`☁️ Synced · ${code} · ${when}`, true);
+      if (!quiet) toast(result.pulled ? "Synced both iPads" : "Progress saved to cloud");
+    } catch (e) {
+      setSyncStatus("☁️ Sync offline — will retry", true);
+      if (!quiet) toast("Sync failed — check Wi‑Fi");
+      console.warn("sync", e);
+    } finally {
+      syncInFlight = false;
+    }
+  }
+
+  function renderSyncSetup() {
+    if (!$("sync-code-input")) return;
+    const code = Sync ? Sync.getCode() : "";
+    $("sync-code-input").value = code;
+    $("sync-setup-status").textContent = code
+      ? `Linked: ${code} — enter this same code on the other iPad.`
+      : "Not linked yet. Create a code here, then enter it on Mom’s iPad.";
   }
 
   function todayKey() {
@@ -656,15 +717,18 @@
 
   // --- Parent ---
   function renderParent() {
+    renderSyncSetup();
     const totalSeen = Object.values(state.skillStats).reduce((a, s) => a + s.seen, 0);
     const totalCorrect = Object.values(state.skillStats).reduce((a, s) => a + s.correct, 0);
     const overall = totalSeen ? Math.round((totalCorrect / totalSeen) * 100) : 0;
+    const code = Sync ? Sync.getCode() : "";
 
     $("parent-summary").innerHTML = totalSeen
       ? `Leo is <strong>Level ${state.level}</strong> with a <strong>${state.streak}-day</strong> streak.
          Overall accuracy: <strong>${overall}%</strong> across <strong>${totalSeen}</strong> problems.
          Full missions: <strong>${state.missionsCompleted}</strong>.
-         Skill Scan: <strong>${state.hasCompletedScan ? "done" : "not yet"}</strong>.`
+         Skill Scan: <strong>${state.hasCompletedScan ? "done" : "not yet"}</strong>.
+         Sync: <strong>${code || "not linked"}</strong>.`
       : `No data yet. Start with the <strong>Skill Scan</strong> (~15 min) to map solid vs growth edges — without a grade label.`;
 
     const placeEl = $("parent-placement");
@@ -741,6 +805,7 @@
     session = null;
     renderHome();
     showScreen("home");
+    syncNow({ quiet: true }).catch(() => {});
   });
   $("btn-another").addEventListener("click", () => {
     if (session && session.mode === "scan") {
@@ -772,6 +837,49 @@
     toast("Progress reset");
   });
 
+  $("btn-sync").addEventListener("click", () => {
+    if (!Sync.getCode()) {
+      renderParent();
+      showScreen("parent");
+      toast("Create or enter a sync code");
+      $("sync-code-input").focus();
+      return;
+    }
+    syncNow({ quiet: false });
+  });
+
+  $("btn-sync-create").addEventListener("click", async () => {
+    const code = Sync.generateCode();
+    Sync.setCode(code);
+    $("sync-code-input").value = code;
+    renderSyncSetup();
+    try {
+      await Sync.push(state, code);
+      toast(`Code ${code} — enter on other iPad`);
+      setSyncStatus(`☁️ Linked · ${code}`, true);
+    } catch (e) {
+      toast("Code saved locally — sync when online");
+    }
+  });
+
+  $("btn-sync-save").addEventListener("click", async () => {
+    const raw = $("sync-code-input").value;
+    const code = Sync.normalizeCode(raw);
+    if (code.length < 6) {
+      toast("Code needs at least 6 characters");
+      return;
+    }
+    Sync.setCode(code);
+    renderSyncSetup();
+    try {
+      await syncNow({ quiet: false });
+    } catch (e) {
+      toast("Code saved — will sync when online");
+    }
+  });
+
+  $("btn-sync-now").addEventListener("click", () => syncNow({ quiet: false }));
+
   document.addEventListener("keydown", (e) => {
     if (!screens.play.classList.contains("active")) return;
     if (e.key === "Enter" && !$("btn-next").hidden) {
@@ -780,6 +888,17 @@
     }
   });
 
+  // When app returns to foreground (other house / other tab)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && Sync.getCode()) {
+      syncNow({ quiet: true }).catch(() => {});
+    }
+  });
+
   renderHome();
   showScreen("home");
+  if (Sync && Sync.getCode()) {
+    setSyncStatus(`☁️ ${Sync.getCode()}`, true);
+    syncNow({ quiet: true }).catch(() => {});
+  }
 })();

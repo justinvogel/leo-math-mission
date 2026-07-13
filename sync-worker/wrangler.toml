@@ -1,0 +1,7 @@
+﻿name = "leo-math-sync"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+[[kv_namespaces]]
+binding = "PROGRESS"
+id = "c7e1cf07608e4ff28eb94665be7c8e84"

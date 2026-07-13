@@ -24,8 +24,12 @@
             <p class="brand-sub">Leo's Number Base</p>
           </div>
         </div>
-        <button type="button" class="icon-btn" id="btn-parent" title="Parent view" aria-label="Parent progress">📊</button>
+        <div class="top-actions">
+          <button type="button" class="icon-btn" id="btn-sync" title="Sync devices" aria-label="Sync progress">☁️</button>
+          <button type="button" class="icon-btn" id="btn-parent" title="Parent view" aria-label="Parent progress">📊</button>
+        </div>
       </header>
+      <p class="sync-status" id="sync-status" hidden></p>
 
       <div class="hero-card">
         <div class="hero-row">
@@ -148,6 +152,21 @@
         <span style="width:48px"></span>
       </header>
       <div class="parent-body">
+        <div class="parent-card sync-setup-card">
+          <h3>☁️ Two-iPad sync</h3>
+          <p class="soft-block" id="sync-setup-help">
+            Same progress at Dad’s and Mom’s. Create a code on one iPad, enter it on the other.
+          </p>
+          <div class="sync-code-row">
+            <input type="text" id="sync-code-input" class="sync-input" maxlength="12" autocomplete="off" autocapitalize="characters" placeholder="e.g. LEO7K2M9" />
+            <button type="button" class="primary-btn sync-save-btn" id="btn-sync-save">Save code</button>
+          </div>
+          <div class="sync-btn-row">
+            <button type="button" class="ghost-btn" id="btn-sync-create">Create new code</button>
+            <button type="button" class="ghost-btn" id="btn-sync-now">Sync now</button>
+          </div>
+          <p class="soft" id="sync-setup-status">Not linked yet.</p>
+        </div>
         <div class="parent-card">
           <h3>How it's going</h3>
           <p id="parent-summary">No missions yet.</p>
@@ -182,6 +201,7 @@
 
   <div id="toast" class="toast" hidden></div>
   <script src="curriculum.js"></script>
+  <script src="sync.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
