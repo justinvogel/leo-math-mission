@@ -7,6 +7,8 @@
   const C = window.MathMissionCurriculum;
   const Sync = window.MathMissionSync;
   const Puzzles = window.MathMissionPuzzles;
+  const Lessons = window.MathMissionLessons;
+  const MatchGame = window.MathMissionMatchGame;
   const STORAGE_KEY = "leo-math-mission-v1";
 
   const defaultState = () => ({
@@ -58,6 +60,9 @@
 
   let state = loadState();
   let session = null;
+  let lessonSkillId = null;
+  let lessonReturn = "home";
+  let matchState = null;
   let syncTimer = null;
   let syncInFlight = false;
 
@@ -67,6 +72,8 @@
     play: $("screen-play"),
     complete: $("screen-complete"),
     parent: $("screen-parent"),
+    lesson: $("screen-lesson"),
+    match: $("screen-match"),
   };
 
   function loadState() {
@@ -303,7 +310,15 @@
       }).join("");
 
       grid.querySelectorAll(".skill-chip[data-skill]:not([disabled])").forEach((btn) => {
-        btn.addEventListener("click", () => startPractice(btn.getAttribute("data-skill")));
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-skill");
+          const place = placementStatus(id);
+          if (place && place.status === "growth" && Lessons && Lessons.getLesson(id)) {
+            openLesson(id, "home");
+          } else {
+            startPractice(id);
+          }
+        });
       });
 
       // Base modules
@@ -327,6 +342,9 @@
       // Persist unlocks only — don't kick off sync mid-render
       saveState({ sync: false });
 
+      // Learn-first chips for growth edges / weak skills
+      renderLearnSection();
+
       // Nudge iOS to paint full dashboard height after dynamic content
       requestAnimationFrame(() => {
         const home = screens.home;
@@ -338,6 +356,81 @@
     } catch (err) {
       console.error("renderHome failed", err);
     }
+  }
+
+  function renderLearnSection() {
+    const section = $("learn-section");
+    const grid = $("learn-grid");
+    if (!section || !grid || !Lessons) return;
+
+    let ids = [];
+    if (state.placement && state.placement.focusSkills && state.placement.focusSkills.length) {
+      ids = state.placement.focusSkills.slice(0, 4);
+    } else {
+      ids = weakSkills().slice(0, 4);
+    }
+    // Always offer core fraction/decimal if nothing flagged yet
+    if (!ids.length) {
+      ids = ["frac-parts", "frac-equiv", "dec-place", "frac-dec"];
+    }
+    ids = ids.filter((id) => Lessons.getLesson(id));
+
+    if (!ids.length) {
+      section.setAttribute("hidden", "");
+      return;
+    }
+    section.removeAttribute("hidden");
+    grid.innerHTML = ids
+      .map((id) => {
+        const sk = C.SKILL_BY_ID[id] || { emoji: "📘", name: id };
+        const lesson = Lessons.getLesson(id);
+        return `<button type="button" class="learn-chip" data-learn="${id}">
+          <span class="emoji">${sk.emoji || "📘"}</span>
+          <span class="name">${lesson.title}</span>
+          <span class="meta">Tap to learn</span>
+        </button>`;
+      })
+      .join("");
+    grid.querySelectorAll("[data-learn]").forEach((btn) => {
+      btn.addEventListener("click", () => openLesson(btn.getAttribute("data-learn"), "home"));
+    });
+  }
+
+  function openLesson(skillId, returnTo) {
+    const lesson = Lessons && Lessons.getLesson(skillId);
+    if (!lesson) {
+      toast("No lesson for that skill yet");
+      return;
+    }
+    lessonSkillId = skillId;
+    lessonReturn = returnTo || "home";
+    $("lesson-title").textContent = lesson.emoji + " " + lesson.title;
+
+    $("lesson-body").innerHTML = `
+      <div class="lesson-card">
+        <p class="lesson-hook">${lesson.hook}</p>
+        <ol class="lesson-steps">
+          ${lesson.steps.map((s) => `<li>${s}</li>`).join("")}
+        </ol>
+        <div class="lesson-example">
+          <div class="lesson-example-label">Example</div>
+          <p><strong>${lesson.example.prompt}</strong></p>
+          <p>${lesson.example.show}</p>
+        </div>
+        <p class="lesson-try"><strong>Try this:</strong> ${lesson.tryIt}</p>
+      </div>
+    `;
+
+    const khan = $("btn-lesson-khan");
+    if (lesson.khan) {
+      khan.hidden = false;
+      khan.href = lesson.khan;
+      khan.textContent = (lesson.khanLabel || "More on Khan Academy") + " ↗";
+    } else {
+      khan.hidden = true;
+    }
+
+    showScreen("lesson");
   }
 
   // --- Adaptive scan list (trim based on early misses) ---
@@ -433,7 +526,7 @@
 
   function startPractice(skillId) {
     if (skillId === "puzzle-lab") {
-      startPuzzleLab();
+      startMatchGame();
       return;
     }
     const questions = C.buildPractice(skillId, effectiveLevel(), 6);
@@ -446,29 +539,138 @@
       results: [],
       scanLog: [],
       startedAt: Date.now(),
+      practiceSkillId: skillId,
     };
     showScreen("play");
     renderQuestion();
   }
 
-  function startPuzzleLab() {
-    if (!Puzzles) {
-      toast("Puzzles still loading");
+  function startMatchGame() {
+    if (!MatchGame) {
+      toast("Match game still loading");
       return;
     }
-    const questions = Puzzles.buildPuzzleRound(8, effectiveLevel());
-    session = {
-      mode: "puzzle",
-      title: "Puzzle Lab",
-      questions,
-      index: 0,
-      correct: 0,
-      results: [],
-      scanLog: [],
+    const board = MatchGame.createBoard(6);
+    matchState = {
+      cards: board.cards.map((c) => ({
+        ...c,
+        faceUp: false,
+        matched: false,
+      })),
+      flipped: [],
+      pairsFound: 0,
+      totalPairs: board.pairs,
+      moves: 0,
+      skills: board.skills,
+      lock: false,
       startedAt: Date.now(),
     };
-    showScreen("play");
-    renderQuestion();
+    $("match-complete").hidden = true;
+    $("match-board").hidden = false;
+    showScreen("match");
+    renderMatchBoard();
+  }
+
+  function renderMatchBoard() {
+    if (!matchState) return;
+    $("match-hud").textContent = `${matchState.pairsFound} / ${matchState.totalPairs} pairs · ${matchState.moves} moves`;
+    $("match-score").textContent = `⭐ ${matchState.pairsFound}`;
+    const board = $("match-board");
+    const n = matchState.cards.length;
+    board.style.gridTemplateColumns = n <= 8 ? "repeat(4, 1fr)" : "repeat(4, 1fr)";
+    board.innerHTML = matchState.cards
+      .map((c, i) => {
+        const cls = [
+          "match-card",
+          c.faceUp || c.matched ? "face-up" : "",
+          c.matched ? "matched" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+        return `<button type="button" class="${cls}" data-idx="${i}" ${
+          c.matched ? "disabled" : ""
+        }>
+          <span class="match-card-inner">
+            <span class="match-back">?</span>
+            <span class="match-front">${c.label}</span>
+          </span>
+        </button>`;
+      })
+      .join("");
+
+    board.querySelectorAll(".match-card:not(.matched)").forEach((btn) => {
+      btn.addEventListener("click", () => onMatchFlip(Number(btn.getAttribute("data-idx"))));
+    });
+  }
+
+  function onMatchFlip(idx) {
+    if (!matchState || matchState.lock) return;
+    const card = matchState.cards[idx];
+    if (!card || card.matched || card.faceUp) return;
+    if (matchState.flipped.length >= 2) return;
+
+    card.faceUp = true;
+    matchState.flipped.push(idx);
+    renderMatchBoard();
+
+    if (matchState.flipped.length < 2) return;
+
+    matchState.moves += 1;
+    matchState.lock = true;
+    const [i, j] = matchState.flipped;
+    const a = matchState.cards[i];
+    const b = matchState.cards[j];
+    const isMatch = a.pairId === b.pairId;
+
+    setTimeout(() => {
+      if (isMatch) {
+        a.matched = true;
+        b.matched = true;
+        a.faceUp = true;
+        b.faceUp = true;
+        matchState.pairsFound += 1;
+        recordSkillResult(a.skill, true);
+        recordSkillResult("puzzle-lab", true);
+        saveState();
+      } else {
+        a.faceUp = false;
+        b.faceUp = false;
+        recordSkillResult(a.skill, false);
+        recordSkillResult(b.skill, false);
+        saveState();
+      }
+      matchState.flipped = [];
+      matchState.lock = false;
+      renderMatchBoard();
+
+      if (matchState.pairsFound >= matchState.totalPairs) {
+        finishMatchGame();
+      }
+    }, isMatch ? 350 : 750);
+  }
+
+  function finishMatchGame() {
+    const xpGain = 25 + Math.max(0, 20 - matchState.moves);
+    state.xp += xpGain;
+    while (state.xp >= C.xpForLevel(state.level)) {
+      state.xp -= C.xpForLevel(state.level);
+      state.level += 1;
+    }
+    state.sessions.unshift({
+      date: todayKey(),
+      title: "Match Up",
+      mode: "match",
+      correct: matchState.pairsFound,
+      total: matchState.totalPairs,
+      xp: xpGain,
+      ms: Date.now() - matchState.startedAt,
+    });
+    state.sessions = state.sessions.slice(0, 20);
+    saveState();
+
+    $("match-board").hidden = true;
+    $("match-complete").hidden = false;
+    $("match-complete-msg").textContent = `Cleared in ${matchState.moves} moves · +${xpGain} XP`;
   }
 
   function phaseLabel(phase, mode) {
@@ -573,6 +775,16 @@
     feedback.className = "q-feedback";
     $("btn-next").hidden = true;
 
+    // Skip: especially important on Skill Scan — don't guess
+    const skipBtn = $("btn-skip");
+    const learnBtn = $("btn-learn-now");
+    skipBtn.hidden = false;
+    skipBtn.disabled = false;
+    // Learn available when we have a lesson for this skill
+    const canLearn = Lessons && Lessons.getLesson(q.skillId);
+    learnBtn.hidden = !canLearn;
+    learnBtn.disabled = false;
+
     const choices = $("q-choices");
     choices.innerHTML = "";
     q.choices.forEach((choice) => {
@@ -608,26 +820,44 @@
     }
   }
 
-  function onAnswer(choice, btn) {
-    const q = session.questions[session.index];
+  function lockQuestionUi() {
     const buttons = [...$("q-choices").querySelectorAll(".choice-btn")];
     buttons.forEach((b) => {
       b.disabled = true;
     });
+    $("btn-skip").hidden = true;
+    $("btn-learn-now").hidden = true;
+    return buttons;
+  }
+
+  function showContinue() {
+    const nextBtn = $("btn-next");
+    nextBtn.hidden = false;
+    nextBtn.textContent =
+      session.index >= session.questions.length - 1
+        ? session.mode === "scan"
+          ? "See my path"
+          : "See results"
+        : "Continue";
+    nextBtn.focus();
+  }
+
+  function onAnswer(choice, btn) {
+    const q = session.questions[session.index];
+    const buttons = lockQuestionUi();
 
     const ok = choice === q.answer;
     session.results[session.index] = ok ? "correct" : "miss";
     if (ok) session.correct += 1;
 
     recordSkillResult(q.skillId, ok);
-    // Puzzle Lab also tracks the underlying math skill
     if (q.trackSkills && Array.isArray(q.trackSkills)) {
       q.trackSkills.forEach((sid) => {
         if (sid !== q.skillId) recordSkillResult(sid, ok);
       });
     }
     if (session.mode === "scan") {
-      session.scanLog.push({ skillId: q.skillId, correct: ok });
+      session.scanLog.push({ skillId: q.skillId, correct: ok, skipped: false });
     }
     saveState();
 
@@ -639,7 +869,6 @@
 
     const feedback = $("q-feedback");
     feedback.hidden = false;
-    // During scan: shorter feedback (less teaching, more mapping)
     if (session.mode === "scan") {
       feedback.className = "q-feedback " + (ok ? "good" : "bad");
       feedback.textContent = ok
@@ -647,22 +876,62 @@
         : `Answer: ${q.answer}. ${q.explain || ""}`.trim();
     } else {
       feedback.className = "q-feedback " + (ok ? "good" : "bad");
-      feedback.textContent = (ok ? "Nice! " : "Not quite. ") + (q.explain || `Answer: ${q.answer}`);
+      feedback.textContent =
+        (ok ? "Nice! " : "Not quite. ") + (q.explain || `Answer: ${q.answer}`);
+      // After a miss, offer explain
+      if (!ok && Lessons && Lessons.getLesson(q.skillId)) {
+        $("btn-learn-now").hidden = false;
+        $("btn-learn-now").disabled = false;
+      }
     }
 
     $("play-score").textContent =
       session.mode === "scan" ? `🔍 ${session.index + 1}` : `⭐ ${session.correct}`;
     renderDots();
+    showContinue();
+  }
 
-    const nextBtn = $("btn-next");
-    nextBtn.hidden = false;
-    nextBtn.textContent =
-      session.index >= session.questions.length - 1
-        ? session.mode === "scan"
-          ? "See my path"
-          : "See results"
-        : "Continue";
-    nextBtn.focus();
+  function onSkip() {
+    if (!session) return;
+    const q = session.questions[session.index];
+    if (!q) return;
+
+    lockQuestionUi();
+    session.results[session.index] = "skip";
+    // Count as "doesn't know" — seen up, correct NOT up
+    recordSkillResult(q.skillId, false);
+    if (q.trackSkills && Array.isArray(q.trackSkills)) {
+      q.trackSkills.forEach((sid) => {
+        if (sid !== q.skillId) recordSkillResult(sid, false);
+      });
+    }
+    if (session.mode === "scan") {
+      session.scanLog.push({ skillId: q.skillId, correct: false, skipped: true });
+    }
+    saveState();
+
+    const buttons = [...$("q-choices").querySelectorAll(".choice-btn")];
+    buttons.forEach((b) => {
+      if (b.textContent === q.answer) b.classList.add("correct");
+      else b.classList.add("dim");
+    });
+
+    const feedback = $("q-feedback");
+    feedback.hidden = false;
+    feedback.className = "q-feedback bad";
+    feedback.textContent =
+      session.mode === "scan"
+        ? `Skipped — marked as needs practice. (Answer was ${q.answer}.)`
+        : `Skipped. Answer: ${q.answer}. ${q.explain || ""}`.trim();
+
+    // Offer lesson when they skip
+    if (Lessons && Lessons.getLesson(q.skillId)) {
+      $("btn-learn-now").hidden = false;
+      $("btn-learn-now").disabled = false;
+    }
+
+    renderDots();
+    showContinue();
   }
 
   function advance() {
@@ -805,18 +1074,27 @@
     const scanBox = $("scan-results-box");
     if (session.mode === "scan" && placement) {
       scanBox.hidden = false;
-      const chips = (placement.focusSkills || [])
+      const focus = placement.focusSkills || [];
+      const chips = focus
         .map((id) => {
           const sk = C.SKILL_BY_ID[id];
-          return sk ? `<span class="mini-chip">${sk.emoji} ${sk.name}</span>` : "";
+          return sk
+            ? `<button type="button" class="mini-chip mini-chip-btn" data-learn="${id}">${sk.emoji} Learn ${sk.name}</button>`
+            : "";
         })
         .join("");
+      const skips = (session.scanLog || []).filter((r) => r.skipped).length;
       scanBox.innerHTML = `
-        <h3>Tonight’s best skills to train</h3>
-        <div class="mini-chip-row">${chips || "<span class='mini-chip'>Keep exploring missions</span>"}</div>
-        <p class="soft">Solid: ${placement.solid.length} · Building: ${placement.building.length} · Growth edges: ${placement.growth.length}</p>
+        <h3>Learn these next</h3>
+        <div class="mini-chip-row">${chips || "<span class='mini-chip'>You’re in good shape — try Match Up or a mission</span>"}</div>
+        <p class="soft">Solid: ${placement.solid.length} · Building: ${placement.building.length} · Growth: ${placement.growth.length}${
+          skips ? ` · Skipped: ${skips}` : ""
+        }</p>
       `;
-      $("btn-another").textContent = "Start training mission";
+      scanBox.querySelectorAll("[data-learn]").forEach((btn) => {
+        btn.addEventListener("click", () => openLesson(btn.getAttribute("data-learn"), "home"));
+      });
+      $("btn-another").textContent = focus.length ? "Learn first skill" : "Start training mission";
     } else {
       scanBox.hidden = true;
       $("btn-another").textContent = "One more quick round";
@@ -921,16 +1199,22 @@
   // --- Events ---
   $("btn-start-mission").addEventListener("click", () => startMission());
   $("btn-start-scan").addEventListener("click", () => startSkillScan());
-  $("btn-start-puzzles").addEventListener("click", () => startPuzzleLab());
+  $("btn-start-match").addEventListener("click", () => startMatchGame());
   $("btn-next").addEventListener("click", advance);
+  $("btn-skip").addEventListener("click", () => onSkip());
+  $("btn-learn-now").addEventListener("click", () => {
+    if (!session) return;
+    const q = session.questions[session.index];
+    if (q && q.skillId) openLesson(q.skillId, "play");
+  });
   $("btn-quit").addEventListener("click", () => {
     if (session && session.index > 0) {
       const ok = confirm("Exit? Unfinished scan/mission won't fully count.");
       if (!ok) return;
     }
     session = null;
-    renderHome();
     showScreen("home");
+    renderHome();
   });
   $("btn-home").addEventListener("click", () => {
     session = null;
@@ -940,7 +1224,12 @@
   });
   $("btn-another").addEventListener("click", () => {
     if (session && session.mode === "scan") {
+      const focus = (state.placement && state.placement.focusSkills) || focusSkills();
       session = null;
+      if (focus.length && Lessons && Lessons.getLesson(focus[0])) {
+        openLesson(focus[0], "home");
+        return;
+      }
       startMission();
       return;
     }
@@ -966,6 +1255,40 @@
     saveState();
     renderParent();
     toast("Progress reset");
+  });
+
+  $("btn-lesson-back").addEventListener("click", () => {
+    if (lessonReturn === "play" && session) {
+      showScreen("play");
+    } else {
+      showScreen("home");
+      renderHome();
+    }
+  });
+  $("btn-lesson-done").addEventListener("click", () => {
+    if (lessonReturn === "play" && session) {
+      showScreen("play");
+    } else {
+      showScreen("home");
+      renderHome();
+    }
+  });
+  $("btn-lesson-practice").addEventListener("click", () => {
+    const id = lessonSkillId;
+    if (id) startPractice(id);
+  });
+
+  $("btn-match-quit").addEventListener("click", () => {
+    matchState = null;
+    showScreen("home");
+    renderHome();
+  });
+  $("btn-match-again").addEventListener("click", () => startMatchGame());
+  $("btn-match-home").addEventListener("click", () => {
+    matchState = null;
+    showScreen("home");
+    renderHome();
+    syncNow({ quiet: true }).catch(() => {});
   });
 
   document.addEventListener("keydown", (e) => {

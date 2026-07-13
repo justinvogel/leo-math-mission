@@ -431,6 +431,14 @@ body {
   font-weight: 600;
 }
 
+button.mini-chip-btn {
+  font: inherit;
+  color: #e0f2fe;
+  cursor: pointer;
+  background: rgba(167, 139, 250, 0.18);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
 .soft {
   color: var(--muted);
   font-weight: 400;
@@ -494,6 +502,250 @@ body {
   color: var(--muted);
   font-size: 0.85rem;
   font-weight: 700;
+}
+
+/* Play actions */
+.play-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.play-actions .ghost-btn,
+.play-actions .primary-btn {
+  margin-top: 0;
+}
+
+#btn-skip {
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+/* Learn section */
+.learn-section {
+  margin-bottom: 18px;
+}
+
+.learn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.learn-chip {
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), rgba(22, 32, 51, 0.95));
+  padding: 14px;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.learn-chip .emoji {
+  display: block;
+  font-size: 1.3rem;
+  margin-bottom: 6px;
+}
+
+.learn-chip .name {
+  display: block;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.learn-chip .meta {
+  display: block;
+  margin-top: 4px;
+  color: #c4b5fd;
+  font-size: 0.78rem;
+}
+
+/* Lesson screen */
+.lesson-body {
+  margin-bottom: 16px;
+}
+
+.lesson-card {
+  background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 18px;
+  box-shadow: var(--shadow);
+}
+
+.lesson-hook {
+  margin: 0 0 14px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #e9d5ff;
+}
+
+.lesson-steps {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  color: #cbd5e1;
+  line-height: 1.55;
+}
+
+.lesson-steps li {
+  margin-bottom: 8px;
+}
+
+.lesson-example {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  margin-bottom: 12px;
+}
+
+.lesson-example-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7dd3fc;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.lesson-example p {
+  margin: 0 0 6px;
+  color: #e2e8f0;
+  line-height: 1.45;
+}
+
+.lesson-try {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.lesson-footer {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.lesson-link {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  color: #a5b4fc !important;
+  line-height: 1.2;
+  padding: 14px;
+}
+
+/* Match game */
+.match-help {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.match-hud {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.match-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.match-card {
+  aspect-ratio: 1;
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  perspective: 600px;
+}
+
+.match-card-inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+  transition: transform 0.35s ease;
+  transform-style: preserve-3d;
+}
+
+.match-card.face-up .match-card-inner,
+.match-card.matched .match-card-inner {
+  transform: rotateY(180deg);
+}
+
+.match-back,
+.match-front {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  font-weight: 800;
+  font-size: 1.05rem;
+  border: 2px solid var(--border);
+}
+
+.match-back {
+  background: linear-gradient(145deg, #312e81, #1e3a5f);
+  color: #c4b5fd;
+  font-size: 1.4rem;
+}
+
+.match-front {
+  background: linear-gradient(180deg, #1e293b, #0f172a);
+  color: #f1f5f9;
+  transform: rotateY(180deg);
+  padding: 6px;
+  text-align: center;
+  line-height: 1.15;
+  font-size: clamp(0.85rem, 3.5vw, 1.1rem);
+}
+
+.match-card.matched .match-front {
+  border-color: rgba(52, 211, 153, 0.55);
+  background: linear-gradient(180deg, rgba(52, 211, 153, 0.2), #0f172a);
+  color: #a7f3d0;
+}
+
+.match-complete {
+  text-align: center;
+  padding: 28px 16px;
+  background: linear-gradient(180deg, var(--card), var(--card-2));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.match-complete h2 {
+  margin: 0 0 8px;
+}
+
+.match-complete p {
+  color: var(--muted);
+  margin: 0 0 18px;
+}
+
+@media (min-width: 700px) {
+  .learn-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .match-board {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 /* Mission card */

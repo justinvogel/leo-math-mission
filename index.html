@@ -79,13 +79,21 @@
       <div class="mission-card puzzle-card" id="puzzle-card">
         <div class="mission-badge puzzle-badge">Leo mode</div>
         <h2>Puzzle Lab</h2>
-        <p>Odd-one-out, pattern locks, pip targets, logic clues, mini grids — same math skills, puzzle brain.</p>
+        <p>Real games — flip cards and match values that mean the same amount.</p>
         <div class="mission-meta">
-          <span>~10–15 min</span>
-          <span>Sudoku / Pips energy</span>
+          <span>~5–10 min</span>
+          <span>Matching game</span>
         </div>
-        <button type="button" class="primary-btn big puzzle-btn" id="btn-start-puzzles">Open Puzzle Lab</button>
+        <button type="button" class="primary-btn big puzzle-btn" id="btn-start-match">Play Match Up</button>
       </div>
+
+      <section class="learn-section" id="learn-section" hidden>
+        <div class="section-head">
+          <h3>Learn first</h3>
+          <p>Short lessons for skills that need a boost</p>
+        </div>
+        <div class="learn-grid" id="learn-grid"></div>
+      </section>
 
       <section class="path-section" id="path-section" hidden>
         <div class="section-head">
@@ -129,8 +137,47 @@
           <div class="q-visual" id="q-visual" hidden></div>
           <div class="q-choices" id="q-choices"></div>
           <div class="q-feedback" id="q-feedback" hidden></div>
-          <button type="button" class="primary-btn" id="btn-next" hidden>Continue</button>
+          <div class="play-actions" id="play-actions">
+            <button type="button" class="ghost-btn" id="btn-skip" hidden>Skip — I don’t know</button>
+            <button type="button" class="ghost-btn" id="btn-learn-now" hidden>Explain this</button>
+            <button type="button" class="primary-btn" id="btn-next" hidden>Continue</button>
+          </div>
         </div>
+      </div>
+    </section>
+
+    <!-- LESSON -->
+    <section id="screen-lesson" class="screen">
+      <header class="top-bar">
+        <button type="button" class="text-btn" id="btn-lesson-back">← Back</button>
+        <h2 class="panel-title" id="lesson-title">Lesson</h2>
+        <span style="width:48px"></span>
+      </header>
+      <div class="lesson-body" id="lesson-body"></div>
+      <div class="lesson-footer">
+        <button type="button" class="primary-btn big" id="btn-lesson-practice">Try a few</button>
+        <button type="button" class="ghost-btn" id="btn-lesson-done">Got it</button>
+        <a class="ghost-btn lesson-link" id="btn-lesson-khan" href="#" target="_blank" rel="noopener" hidden>More on Khan Academy ↗</a>
+      </div>
+    </section>
+
+    <!-- MATCH GAME -->
+    <section id="screen-match" class="screen">
+      <header class="play-top">
+        <button type="button" class="text-btn" id="btn-match-quit">← Exit</button>
+        <div class="play-progress">
+          <div class="play-phase">Match Up</div>
+          <div class="match-hud" id="match-hud">Find pairs</div>
+        </div>
+        <div class="play-score" id="match-score">0</div>
+      </header>
+      <p class="match-help">Flip two cards. Match values that mean the <strong>same amount</strong> (like 1/2 and 0.5).</p>
+      <div class="match-board" id="match-board"></div>
+      <div class="match-complete" id="match-complete" hidden>
+        <h2>Board clear! 🎉</h2>
+        <p id="match-complete-msg">Nice matching.</p>
+        <button type="button" class="primary-btn big" id="btn-match-again">Play again</button>
+        <button type="button" class="ghost-btn" id="btn-match-home">Back to Base</button>
       </div>
     </section>
 
@@ -183,10 +230,10 @@
         <div class="parent-card tips">
           <h3>How to use this</h3>
           <ul>
-            <li><strong>Skill Scan first</strong> — maps solid / building / growth edges. Never tells Leo a grade level.</li>
-            <li>Nightly missions then train the growth edges automatically.</li>
-            <li>Optional second opinion: free Mathnasium/Sylvan diagnostic, or Khan Academy course challenge (see README).</li>
-            <li>Miss a day? No lecture. Streak resets; the skill map stays.</li>
+            <li><strong>Skill Scan first</strong> — use <strong>Skip</strong> when unsure (don’t guess).</li>
+            <li><strong>Learn first</strong> lessons appear for growth edges; open any skill’s “Learn”.</li>
+            <li><strong>Match Up</strong> is a real flip-card game (not quiz wording).</li>
+            <li>Miss a day? No lecture. Streak resets; skill map stays.</li>
           </ul>
           <button type="button" class="ghost-btn" id="btn-rescan">Re-run Skill Scan</button>
         </div>
@@ -197,7 +244,9 @@
 
   <div id="toast" class="toast" hidden></div>
   <script src="curriculum.js"></script>
+  <script src="lessons.js"></script>
   <script src="puzzles.js"></script>
+  <script src="matchgame.js"></script>
   <script src="sync.js"></script>
   <script src="app.js"></script>
 </body>
