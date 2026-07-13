@@ -421,13 +421,25 @@
       </div>
     `;
 
-    const khan = $("btn-lesson-khan");
-    if (lesson.khan) {
-      khan.hidden = false;
-      khan.href = lesson.khan;
-      khan.textContent = (lesson.khanLabel || "More on Khan Academy") + " ↗";
+    const resBox = $("lesson-resources");
+    const resources = Array.isArray(lesson.resources)
+      ? lesson.resources
+      : lesson.khan
+        ? [{ label: lesson.khanLabel || "Khan Academy", url: lesson.khan, kind: "khan" }]
+        : [];
+    if (resources.length) {
+      resBox.innerHTML = resources
+        .map((r) => {
+          const badge =
+            r.kind === "khan" ? "🎓 Khan" : r.kind === "video" ? "▶️ Watch" : "📖 Read";
+          return `<a class="resource-btn kind-${r.kind || "link"}" href="${r.url}" target="_blank" rel="noopener">
+            <span class="resource-badge">${badge}</span>
+            <span class="resource-label">${r.label} ↗</span>
+          </a>`;
+        })
+        .join("");
     } else {
-      khan.hidden = true;
+      resBox.innerHTML = `<p class="soft">No external links for this one — use the steps above, then try a few.</p>`;
     }
 
     showScreen("lesson");

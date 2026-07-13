@@ -1,9 +1,16 @@
 /**
- * Short teach-me lessons for each skill.
- * Kid-friendly, visual-first. Optional Khan deep links for more.
+ * Short teach-me lessons + curated free online resources.
+ *
+ * Note: Khan Academy removed its public API years ago, so we can't auto-import
+ * Leo's Khan progress. We deep-link into the right unit (opens in Safari) —
+ * free, no account required to watch/practice (account optional for saving).
  */
 (function (global) {
   "use strict";
+
+  function R(label, url, kind) {
+    return { label: label, url: url, kind: kind || "link" };
+  }
 
   const LESSONS = {
     "mult-facts": {
@@ -20,8 +27,10 @@
         show: "Five groups of 6 → 6+6+6+6+6 = 30",
       },
       tryIt: "Say out loud: “____ groups of ____.”",
-      khan: "https://www.khanacademy.org/math/arithmetic-home/multiply-divide",
-      khanLabel: "Khan: Multiply & divide",
+      resources: [
+        R("Khan Academy — Multiply & divide", "https://www.khanacademy.org/math/arithmetic-home/multiply-divide", "khan"),
+        R("Math is Fun — Multiplication", "https://www.mathsisfun.com/multiplication-tips-tricks.html", "article"),
+      ],
     },
     "div-facts": {
       title: "Division Facts",
@@ -37,8 +46,10 @@
         show: "How many 5s fit in 20? Four times. Answer: 4.",
       },
       tryIt: "For any ÷ problem, ask: “What times the bottom equals the top?”",
-      khan: "https://www.khanacademy.org/math/arithmetic-home/multiply-divide",
-      khanLabel: "Khan: Multiply & divide",
+      resources: [
+        R("Khan Academy — Multiply & divide", "https://www.khanacademy.org/math/arithmetic-home/multiply-divide", "khan"),
+        R("Math is Fun — Division", "https://www.mathsisfun.com/numbers/division.html", "article"),
+      ],
     },
     "place-whole": {
       title: "Whole-Number Place Value",
@@ -54,8 +65,10 @@
         show: "6 is in the hundreds place → 600.",
       },
       tryIt: "Pick any digit and name its place out loud.",
-      khan: "https://www.khanacademy.org/math/arithmetic-home/arith-review-place-value",
-      khanLabel: "Khan: Place value",
+      resources: [
+        R("Khan Academy — Place value", "https://www.khanacademy.org/math/arithmetic-home/arith-review-place-value", "khan"),
+        R("Math is Fun — Place value", "https://www.mathsisfun.com/place-value.html", "article"),
+      ],
     },
     "mult-multi": {
       title: "Multi-Digit Multiply",
@@ -71,8 +84,10 @@
         show: "10×6=60, 5×6=30, total 90.",
       },
       tryIt: "Split the bigger number into tens + ones, then add.",
-      khan: "https://www.khanacademy.org/math/arithmetic/arith-review-multiply-divide",
-      khanLabel: "Khan: Multi-digit multiply",
+      resources: [
+        R("Khan Academy — Multi-digit multiply", "https://www.khanacademy.org/math/arithmetic/arith-review-multiply-divide", "khan"),
+        R("Math is Fun — Long multiplication", "https://www.mathsisfun.com/numbers/multiplication-long.html", "article"),
+      ],
     },
     "div-multi": {
       title: "Multi-Digit Divide",
@@ -88,8 +103,10 @@
         show: "3×12=36, so the answer is 12. Always check!",
       },
       tryIt: "Guess a product, then adjust up or down.",
-      khan: "https://www.khanacademy.org/math/arithmetic/arith-review-multiply-divide",
-      khanLabel: "Khan: Multi-digit divide",
+      resources: [
+        R("Khan Academy — Multi-digit divide", "https://www.khanacademy.org/math/arithmetic/arith-review-multiply-divide", "khan"),
+        R("Math is Fun — Long division", "https://www.mathsisfun.com/long_division.html", "article"),
+      ],
     },
     "frac-parts": {
       title: "Parts of a Whole",
@@ -105,8 +122,11 @@
         show: "You ate 1/4. Three slices left is 3/4.",
       },
       tryIt: "Draw a bar, split it into equal parts, shade some.",
-      khan: "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-fractions-intro",
-      khanLabel: "Khan: Intro to fractions",
+      resources: [
+        R("Khan Academy — Intro to fractions", "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-fractions-intro", "khan"),
+        R("Math is Fun — Fractions", "https://www.mathsisfun.com/fractions.html", "article"),
+        R("BBC Bitesize — What is a fraction?", "https://www.bbc.co.uk/bitesize/topics/zhdwxnb/articles/z8n4k7h", "video"),
+      ],
     },
     "frac-equiv": {
       title: "Equivalent Fractions",
@@ -122,8 +142,10 @@
         show: "Divide top and bottom of 3/6 by 3 → 1/2. Yes!",
       },
       tryIt: "Make three fractions equal to 1/3 by multiplying by 2, 3, 4.",
-      khan: "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-equivalent-fractions",
-      khanLabel: "Khan: Equivalent fractions",
+      resources: [
+        R("Khan Academy — Equivalent fractions", "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-equivalent-fractions", "khan"),
+        R("Math is Fun — Equivalent fractions", "https://www.mathsisfun.com/equivalent_fractions.html", "article"),
+      ],
     },
     "frac-compare": {
       title: "Compare Fractions",
@@ -139,8 +161,10 @@
         show: "Common bottom 12: 9/12 vs 8/12 → 3/4 is larger.",
       },
       tryIt: "Ask: is each above or below half?",
-      khan: "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-fractions-comparing",
-      khanLabel: "Khan: Comparing fractions",
+      resources: [
+        R("Khan Academy — Comparing fractions", "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-fractions-comparing", "khan"),
+        R("Math is Fun — Comparing fractions", "https://www.mathsisfun.com/comparing-fractions.html", "article"),
+      ],
     },
     "frac-add-sub": {
       title: "Add & Subtract (Same Denominator)",
@@ -156,8 +180,10 @@
         show: "Same fifths → 3/5.",
       },
       tryIt: "Never add the bottoms when they’re already the same!",
-      khan: "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-add-sub-fractions",
-      khanLabel: "Khan: Add & subtract fractions",
+      resources: [
+        R("Khan Academy — Add & subtract fractions", "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-add-sub-fractions", "khan"),
+        R("Math is Fun — Adding fractions", "https://www.mathsisfun.com/fractions_addition.html", "article"),
+      ],
     },
     "frac-mixed-ops": {
       title: "Unlike Denominators",
@@ -173,8 +199,10 @@
         show: "1/2 = 2/4, so 1/4 + 2/4 = 3/4.",
       },
       tryIt: "Rewrite both fractions with the same bottom before + or −.",
-      khan: "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-add-sub-fractions",
-      khanLabel: "Khan: Unlike denominators",
+      resources: [
+        R("Khan Academy — Unlike denominators", "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-add-sub-fractions", "khan"),
+        R("Math is Fun — Common denominator", "https://www.mathsisfun.com/least-common-denominator.html", "article"),
+      ],
     },
     "frac-mult": {
       title: "Multiply Fractions",
@@ -190,8 +218,10 @@
         show: "Half of a quarter is one eighth → 1/8.",
       },
       tryIt: "Draw a square, shade 1/2 one way, then 1/3 of that.",
-      khan: "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-mult-div-fractions",
-      khanLabel: "Khan: Multiply fractions",
+      resources: [
+        R("Khan Academy — Multiply fractions", "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-mult-div-fractions", "khan"),
+        R("Math is Fun — Multiply fractions", "https://www.mathsisfun.com/fractions_multiplication.html", "article"),
+      ],
     },
     "frac-div": {
       title: "Divide Fractions (Intro)",
@@ -207,8 +237,10 @@
         show: "How many quarters in a half? Two. Or 1/2 × 4/1 = 2.",
       },
       tryIt: "Flip the second fraction, then multiply.",
-      khan: "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-mult-div-fractions",
-      khanLabel: "Khan: Divide fractions",
+      resources: [
+        R("Khan Academy — Divide fractions", "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-mult-div-fractions", "khan"),
+        R("Math is Fun — Divide fractions", "https://www.mathsisfun.com/fractions_division.html", "article"),
+      ],
     },
     "dec-place": {
       title: "Decimal Place Value",
@@ -224,8 +256,11 @@
         show: "5 is tenths, 8 is hundredths, 2 is thousandths.",
       },
       tryIt: "Say decimals out loud: 0.4 is “four tenths.”",
-      khan: "https://www.khanacademy.org/math/arithmetic/arith-decimals",
-      khanLabel: "Khan: Decimals",
+      resources: [
+        R("Khan Academy — Decimals", "https://www.khanacademy.org/math/arithmetic/arith-decimals", "khan"),
+        R("Math is Fun — Decimals", "https://www.mathsisfun.com/decimals.html", "article"),
+        R("BBC Bitesize — Decimals", "https://www.bbc.co.uk/bitesize/topics/zsjqtfr", "video"),
+      ],
     },
     "dec-compare": {
       title: "Compare Decimals",
@@ -241,8 +276,10 @@
         show: "0.60 vs 0.58 → 0.6 is larger.",
       },
       tryIt: "Write both with the same number of decimal places.",
-      khan: "https://www.khanacademy.org/math/arithmetic/arith-decimals",
-      khanLabel: "Khan: Compare decimals",
+      resources: [
+        R("Khan Academy — Decimals practice", "https://www.khanacademy.org/math/arithmetic/arith-decimals", "khan"),
+        R("Math is Fun — Ordering decimals", "https://www.mathsisfun.com/ordering_decimals.html", "article"),
+      ],
     },
     "frac-dec": {
       title: "Fractions ↔ Decimals",
@@ -258,8 +295,10 @@
         show: "3÷4 = 0.75.",
       },
       tryIt: "Flash yourself: 0.2 ↔ ?  1/4 ↔ ?",
-      khan: "https://www.khanacademy.org/math/arithmetic/arith-review-decimals/arith-review-decimals-to-fractions",
-      khanLabel: "Khan: Fractions & decimals",
+      resources: [
+        R("Khan Academy — Fractions & decimals", "https://www.khanacademy.org/math/arithmetic/arith-review-decimals/arith-review-decimals-to-fractions", "khan"),
+        R("Math is Fun — Convert fractions to decimals", "https://www.mathsisfun.com/converting-fractions-decimals.html", "article"),
+      ],
     },
     "dec-ops": {
       title: "Decimal Add & Subtract",
@@ -275,8 +314,10 @@
         show: "1.40 + 2.35 = 3.75.",
       },
       tryIt: "Always write the point in the answer before you add.",
-      khan: "https://www.khanacademy.org/math/arithmetic/arith-decimals/arith-review-add-decimals",
-      khanLabel: "Khan: Add/subtract decimals",
+      resources: [
+        R("Khan Academy — Add/subtract decimals", "https://www.khanacademy.org/math/arithmetic/arith-decimals/arith-review-add-decimals", "khan"),
+        R("Math is Fun — Adding decimals", "https://www.mathsisfun.com/adding-decimals.html", "article"),
+      ],
     },
     "dec-mult": {
       title: "Decimal Multiply",
@@ -292,8 +333,10 @@
         show: "5×6=30, one decimal place → 3.0 which is 3.",
       },
       tryIt: "Count decimal digits first so you don’t lose the point.",
-      khan: "https://www.khanacademy.org/math/arithmetic/arith-decimals/arith-review-mul-decimals",
-      khanLabel: "Khan: Multiply decimals",
+      resources: [
+        R("Khan Academy — Multiply decimals", "https://www.khanacademy.org/math/arithmetic/arith-decimals/arith-review-mul-decimals", "khan"),
+        R("Math is Fun — Multiplying decimals", "https://www.mathsisfun.com/multiplying-decimals.html", "article"),
+      ],
     },
     "word-mixed": {
       title: "Story Missions",
@@ -309,8 +352,10 @@
         show: "5 left → 5/8.",
       },
       tryIt: "Retell the story in one short math sentence.",
-      khan: "https://www.khanacademy.org/math/cc-fifth-grade-math",
-      khanLabel: "Khan: Grade 5 word problems",
+      resources: [
+        R("Khan Academy — 5th grade math", "https://www.khanacademy.org/math/cc-fifth-grade-math", "khan"),
+        R("Math is Fun — Word problems tips", "https://www.mathsisfun.com/algebra/word-questions-solving.html", "article"),
+      ],
     },
     "percent-intro": {
       title: "Percent Basics",
@@ -326,8 +371,11 @@
         show: "75/100 = 3/4.",
       },
       tryIt: "Memorize: 50%, 25%, 10%, 1% as fraction and decimal.",
-      khan: "https://www.khanacademy.org/math/cc-sixth-grade-math/cc-6th-ratios-prop-topic/cc-6th-percentages",
-      khanLabel: "Khan: Percentages",
+      resources: [
+        R("Khan Academy — Percentages", "https://www.khanacademy.org/math/cc-sixth-grade-math/cc-6th-ratios-prop-topic/cc-6th-percentages", "khan"),
+        R("Math is Fun — Percentage", "https://www.mathsisfun.com/percentage.html", "article"),
+        R("BBC Bitesize — Percentages", "https://www.bbc.co.uk/bitesize/topics/znjqtfr", "video"),
+      ],
     },
     "puzzle-lab": {
       title: "Puzzle Lab",
@@ -343,8 +391,9 @@
         show: "0.5 or 50% — same amount, different look.",
       },
       tryIt: "Open Match Up and clear the board.",
-      khan: null,
-      khanLabel: null,
+      resources: [
+        R("Khan Academy — Fractions & decimals bridge", "https://www.khanacademy.org/math/arithmetic/arith-review-decimals/arith-review-decimals-to-fractions", "khan"),
+      ],
     },
   };
 
