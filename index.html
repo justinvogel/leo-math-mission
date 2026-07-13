@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="description" content="Leo's Math Mission — daily fraction & decimal quests for iPad" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <title>Leo's Math Mission</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- HOME -->
+    <section id="screen-home" class="screen active">
+      <header class="top-bar">
+        <div class="brand">
+          <span class="brand-mark">⚡</span>
+          <div>
+            <h1>Math Mission</h1>
+            <p class="brand-sub">Leo's Number Base</p>
+          </div>
+        </div>
+        <button type="button" class="icon-btn" id="btn-parent" title="Parent view" aria-label="Parent progress">📊</button>
+      </header>
+
+      <div class="hero-card">
+        <div class="hero-row">
+          <div class="avatar" id="home-avatar">🚀</div>
+          <div class="hero-stats">
+            <div class="stat">
+              <span class="stat-label">Level</span>
+              <span class="stat-value" id="stat-level">1</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">XP</span>
+              <span class="stat-value" id="stat-xp">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Streak</span>
+              <span class="stat-value" id="stat-streak">0🔥</span>
+            </div>
+          </div>
+        </div>
+        <div class="xp-track" aria-hidden="true">
+          <div class="xp-fill" id="xp-fill"></div>
+        </div>
+        <p class="xp-caption" id="xp-caption">50 XP to Level 2</p>
+      </div>
+
+      <div class="mission-card scan-card" id="scan-card" hidden>
+        <div class="mission-badge scan-badge">Start here</div>
+        <h2>Skill Scan</h2>
+        <p>A short map of what feels solid vs what to train next. No grades. No “behind.” Just your path.</p>
+        <div class="mission-meta">
+          <span>~12–18 min</span>
+          <span>One-time (or re-run anytime)</span>
+        </div>
+        <button type="button" class="primary-btn big" id="btn-start-scan">Start Skill Scan</button>
+      </div>
+
+      <div class="mission-card" id="mission-card">
+        <div class="mission-badge">Tonight's Mission</div>
+        <h2 id="mission-title">Fraction Foundations</h2>
+        <p id="mission-desc">Warm-up · 8 quest problems · boss challenge</p>
+        <div class="mission-meta">
+          <span id="mission-time">~15–20 min</span>
+          <span id="mission-focus">Focus: fractions</span>
+        </div>
+        <button type="button" class="primary-btn big" id="btn-start-mission">Start Mission</button>
+      </div>
+
+      <section class="path-section" id="path-section" hidden>
+        <div class="section-head">
+          <h3>Your training path</h3>
+          <p id="path-headline">From your Skill Scan</p>
+        </div>
+        <div class="path-chips" id="path-chips"></div>
+      </section>
+
+      <section class="skills-section">
+        <div class="section-head">
+          <h3>Skill Paths</h3>
+          <p>Pick one to practice extra</p>
+        </div>
+        <div class="skill-grid" id="skill-grid"></div>
+      </section>
+
+      <section class="base-section">
+        <div class="section-head">
+          <h3>Number Base</h3>
+          <p>Earn modules by completing missions</p>
+        </div>
+        <div class="base-grid" id="base-grid"></div>
+      </section>
+    </section>
+
+    <!-- MISSION PLAY -->
+    <section id="screen-play" class="screen">
+      <header class="play-top">
+        <button type="button" class="text-btn" id="btn-quit">← Exit</button>
+        <div class="play-progress">
+          <div class="play-phase" id="play-phase">Warm-up</div>
+          <div class="dots" id="progress-dots"></div>
+        </div>
+        <div class="play-score" id="play-score">0</div>
+      </header>
+
+      <div class="question-shell">
+        <div class="question-card" id="question-card">
+          <p class="q-prompt" id="q-prompt">Loading…</p>
+          <div class="q-visual" id="q-visual" hidden></div>
+          <div class="q-choices" id="q-choices"></div>
+          <div class="q-feedback" id="q-feedback" hidden></div>
+          <button type="button" class="primary-btn" id="btn-next" hidden>Continue</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MISSION COMPLETE -->
+    <section id="screen-complete" class="screen">
+      <div class="complete-card">
+        <div class="complete-emoji" id="complete-emoji">🎉</div>
+        <h2 id="complete-title">Mission Complete!</h2>
+        <p id="complete-summary">Great work tonight.</p>
+        <div class="complete-stats">
+          <div class="c-stat"><span id="c-correct">0</span><label>Correct</label></div>
+          <div class="c-stat"><span id="c-xp">0</span><label>XP Earned</label></div>
+          <div class="c-stat"><span id="c-streak">0</span><label>Streak</label></div>
+        </div>
+        <div class="unlock-banner" id="unlock-banner" hidden>
+          <span id="unlock-text">New base module unlocked!</span>
+        </div>
+        <div id="scan-results-box" class="scan-results" hidden></div>
+        <button type="button" class="primary-btn big" id="btn-home">Back to Base</button>
+        <button type="button" class="ghost-btn" id="btn-another">One more quick round</button>
+      </div>
+    </section>
+
+    <!-- PARENT -->
+    <section id="screen-parent" class="screen">
+      <header class="top-bar">
+        <button type="button" class="text-btn" id="btn-parent-back">← Back</button>
+        <h2 class="panel-title">Parent View</h2>
+        <span style="width:48px"></span>
+      </header>
+      <div class="parent-body">
+        <div class="parent-card">
+          <h3>How it's going</h3>
+          <p id="parent-summary">No missions yet.</p>
+        </div>
+        <div class="parent-card">
+          <h3>Skill map <span class="soft">(not a grade label)</span></h3>
+          <p id="parent-placement" class="soft-block">No Skill Scan yet. Have Leo run it once — ~15 min.</p>
+          <div id="parent-skill-map"></div>
+        </div>
+        <div class="parent-card">
+          <h3>Live mastery (all practice)</h3>
+          <div id="parent-skills"></div>
+        </div>
+        <div class="parent-card">
+          <h3>Recent sessions</h3>
+          <div id="parent-sessions"></div>
+        </div>
+        <div class="parent-card tips">
+          <h3>How to use this</h3>
+          <ul>
+            <li><strong>Skill Scan first</strong> — maps solid / building / growth edges. Never tells Leo a grade level.</li>
+            <li>Nightly missions then train the growth edges automatically.</li>
+            <li>Optional second opinion: free Mathnasium/Sylvan diagnostic, or Khan Academy course challenge (see README).</li>
+            <li>Miss a day? No lecture. Streak resets; the skill map stays.</li>
+          </ul>
+          <button type="button" class="ghost-btn" id="btn-rescan">Re-run Skill Scan</button>
+        </div>
+        <button type="button" class="ghost-btn danger" id="btn-reset">Reset all progress</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="curriculum.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
