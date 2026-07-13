@@ -6,6 +6,7 @@
 
   const C = window.MathMissionCurriculum;
   const Sync = window.MathMissionSync;
+  const Puzzles = window.MathMissionPuzzles;
   const STORAGE_KEY = "leo-math-mission-v1";
 
   const defaultState = () => ({
@@ -355,12 +356,16 @@
     });
     const use = unlocked.length ? unlocked : ["frac-parts", "dec-place"];
 
-    const questions = C.buildMission({
+    let questions = C.buildMission({
       skillIds: use,
       level: effectiveLevel(),
       weakSkills: weakSkills(),
       placementFocus: focusSkills(),
     });
+    // Leo loves puzzles — fold a couple into every mission
+    if (Puzzles && Puzzles.injectPuzzles) {
+      questions = Puzzles.injectPuzzles(questions, 2);
+    }
 
     session = {
       mode: "mission",
@@ -377,6 +382,10 @@
   }
 
   function startPractice(skillId) {
+    if (skillId === "puzzle-lab") {
+      startPuzzleLab();
+      return;
+    }
     const questions = C.buildPractice(skillId, effectiveLevel(), 6);
     session = {
       mode: "practice",
@@ -392,8 +401,29 @@
     renderQuestion();
   }
 
+  function startPuzzleLab() {
+    if (!Puzzles) {
+      toast("Puzzles still loading");
+      return;
+    }
+    const questions = Puzzles.buildPuzzleRound(8, effectiveLevel());
+    session = {
+      mode: "puzzle",
+      title: "Puzzle Lab",
+      questions,
+      index: 0,
+      correct: 0,
+      results: [],
+      scanLog: [],
+      startedAt: Date.now(),
+    };
+    showScreen("play");
+    renderQuestion();
+  }
+
   function phaseLabel(phase, mode) {
     if (mode === "scan") return "Skill Scan";
+    if (mode === "puzzle" || phase === "puzzle") return "Puzzle Lab";
     if (phase === "warm-up") return "Warm-up";
     if (phase === "quest") return "Quest";
     if (phase === "boss") return "Boss Challenge";
@@ -446,6 +476,26 @@
           <div class="box"><strong>${visual.hundredths}</strong><span>hundredths</span></div>
           <div class="box"><strong>${visual.thousandths}</strong><span>thousandths</span></div>
         </div>`;
+      return;
+    }
+    if (visual.type === "chips") {
+      box.innerHTML = `<div class="chip-row">${visual.items
+        .map((it) => `<span class="chip ${it === "?" ? "mystery" : ""}">${it}</span>`)
+        .join("")}</div>`;
+      return;
+    }
+    if (visual.type === "target") {
+      box.innerHTML = `<div class="target-banner">${visual.label}</div>`;
+      return;
+    }
+    if (visual.type === "grid-row") {
+      box.innerHTML = `<div class="grid-row-visual">${visual.cells
+        .map((c) => `<div class="gcell ${c === "?" ? "blank" : ""}">${c}</div>`)
+        .join("")}</div><div class="grid-row-label">${visual.label || ""}</div>`;
+      return;
+    }
+    if (visual.type === "match") {
+      box.innerHTML = `<div class="match-visual"><span>${visual.left}</span><span class="arrow">↔</span><span>${visual.right}</span></div>`;
     }
   }
 
@@ -520,6 +570,12 @@
     if (ok) session.correct += 1;
 
     recordSkillResult(q.skillId, ok);
+    // Puzzle Lab also tracks the underlying math skill
+    if (q.trackSkills && Array.isArray(q.trackSkills)) {
+      q.trackSkills.forEach((sid) => {
+        if (sid !== q.skillId) recordSkillResult(sid, ok);
+      });
+    }
     if (session.mode === "scan") {
       session.scanLog.push({ skillId: q.skillId, correct: ok });
     }
@@ -610,6 +666,9 @@
         if (state.streak >= 3) xpGain += 5;
         if (state.streak >= 7) xpGain += 10;
       }
+    } else if (session.mode === "puzzle") {
+      xpGain = 20 + Math.round(accuracy * 30);
+      if (accuracy >= 0.9) xpGain += 10;
     } else {
       xpGain = 10 + Math.round(accuracy * 15);
     }
@@ -660,13 +719,21 @@
         ? "Skill Scan Complete!"
         : session.mode === "mission"
           ? "Mission Complete!"
-          : "Practice Complete!";
+          : session.mode === "puzzle"
+            ? "Puzzle Lab Clear!"
+            : "Practice Complete!";
     $("complete-summary").textContent =
       session.mode === "scan"
         ? placement.kidHeadline
-        : leveled
-          ? `Level up! You're now Level ${state.level}. ${encouragement(accuracy)}`
-          : encouragement(accuracy);
+        : session.mode === "puzzle"
+          ? leveled
+            ? `Level up! You're now Level ${state.level}. Sharp puzzle brain.`
+            : accuracy >= 0.75
+              ? "Those patterns didn’t stand a chance."
+              : "Good solving. Try another round when you want."
+          : leveled
+            ? `Level up! You're now Level ${state.level}. ${encouragement(accuracy)}`
+            : encouragement(accuracy);
     $("c-correct").textContent = `${correct}/${total}`;
     $("c-xp").textContent = `+${xpGain}`;
     $("c-streak").textContent = String(state.streak);
@@ -791,6 +858,7 @@
   // --- Events ---
   $("btn-start-mission").addEventListener("click", () => startMission());
   $("btn-start-scan").addEventListener("click", () => startSkillScan());
+  $("btn-start-puzzles").addEventListener("click", () => startPuzzleLab());
   $("btn-next").addEventListener("click", advance);
   $("btn-quit").addEventListener("click", () => {
     if (session && session.index > 0) {

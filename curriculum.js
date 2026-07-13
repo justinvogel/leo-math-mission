@@ -271,6 +271,19 @@
       targetFor: "6th",
       scanPriority: 310,
     },
+    {
+      id: "puzzle-lab",
+      name: "Puzzle Lab",
+      emoji: "🧩",
+      domain: "mixed",
+      focus: "mixed",
+      blurb: "Patterns, logic, targets",
+      unlockLevel: 1,
+      prereqs: [],
+      typicalBand: "all",
+      targetFor: "6th",
+      scanPriority: 999,
+    },
   ];
 
   const SKILL_BY_ID = Object.fromEntries(SKILLS.map((s) => [s.id, s]));
