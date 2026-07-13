@@ -2,7 +2,19 @@
 
 A fun, iPad-friendly daily math app to help Leo catch up on **fractions** and **decimals** before / during 6th grade.
 
-Built as a web app — no App Store, no account. Progress saves on the iPad in the browser.
+## Live URL (use this on Leo’s iPad)
+
+**https://justinvogel.github.io/leo-math-mission/**
+
+Works at Dad’s or Mom’s house — any Wi‑Fi. No App Store.
+
+### Put it on the home screen (best experience)
+
+1. Open the link in **Safari** on the iPad  
+2. Tap **Share** → **Add to Home Screen**  
+3. Open from the new icon next time  
+
+Progress is saved **on that iPad** (in Safari). Same iPad at both houses = same progress. Clearing Safari website data would wipe it.
 
 ## What it is
 
@@ -16,35 +28,29 @@ See **ASSESSMENT.md** for how placement works and how Khan / free tutoring diagn
 
 Montessori-friendly: Leo chooses paths; the scan only sets a smart default.
 
-## Put it on Leo's iPad
-
-### Fastest (same Wi‑Fi)
-
-On your PC, in this folder:
+## Local development
 
 ```powershell
 cd "C:\Users\justi\Desktop\CLAUDE COWORK\PROJECTS\Family\Leo\MathMission"
 python -m http.server 8765
 ```
 
-On the iPad Safari, open:
+Open `http://localhost:8765`
 
-`http://YOUR-PC-IP:8765`
+### Deploy updates
 
-(Find your PC IP: `ipconfig` → IPv4 address.)
+```powershell
+git add -A
+git commit -m "Update Math Mission"
+git push
+```
 
-Then **Share → Add to Home Screen** so it feels like a real app.
-
-### Always available
-
-- Upload this folder to Google Drive / Dropbox and open `index.html` (some browsers restrict local files; a simple host is more reliable)
-- Or deploy free on [Netlify Drop](https://app.netlify.com/drop) / GitHub Pages and bookmark the URL
-- Or AirDrop / cable-copy the folder and use a simple local server app
+GitHub Pages rebuilds in about a minute: https://justinvogel.github.io/leo-math-mission/
 
 ### Tips
 
-- Use **Safari**, not Chrome, for best “Add to Home Screen” on iPad
-- Progress is stored **on that iPad** (localStorage). Clearing Safari data wipes it
+- Use **Safari** for best “Add to Home Screen” on iPad  
+- Progress is **per device** (not cloud-synced yet). One iPad that travels = ideal  
 - Dad nights: one mission after dinner is enough. Miss a day? Streak resets; skill progress stays
 
 ## Suggested routine (15–30 min)
